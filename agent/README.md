@@ -7,7 +7,7 @@ The OpenOLT agent is used by [VOLTHA](https://github.com/opencord/voltha)
 through the [OpenOLT
 adapter](https://github.com/opencord/voltha/tree/master/voltha/adapters/openolt).
 
-OpenOLT agent uses Broadcom's BAL (Broadband Access Layer) software for Maple/Qumran chipsets based OLT such as the EdgeCore/Accton ASFVOLT16.
+OpenOLT agent currently supports Broadcom's Maple/Qumran chipsets.
 
 ```text
 
@@ -103,7 +103,6 @@ Open a terminal and run the Broadcom BAL software (*dev_mgmt_daemon*):
 cd /broadcom
 ./dev_mgmt_daemon -d -pcie
 ```
-The `dev_mgmt_daemon` executable, when run in foreground, presents the CLI for Broadcom's BAL - Broadband Access Layer which is useful for debugging.
 
 While the first executable still runs (even in background), open another
 terminal and run *openolt*:
@@ -135,7 +134,7 @@ At the VOLTHA CLI, preprovision and enable the OLT:
 
 ### Supported BAL API versions
 
-Currently, OpenOLT supports Broadcom's BAL API, version *3.1.1.1*.
+Currently, OpenOLT support the Broadcom BAL APIs, version *3.1.1.1*.
 
 ### Proprietary software requirements
 
@@ -151,7 +150,7 @@ The versions currently supported by the OpenOLT agent are:
 * sdk-all-6.5.13.tar.gz
 * ACCTON_BAL_3.1.1.1-V201908010203.patch
 
-> NOTE: the repository does not contain the above three source packages.  These
+> NOTE: the repository does not contain the above four source packages.  These
 > are needed to build the OpenOLT agent executable. Contact
 > [Broadcom](mailto:dave.baron@broadcom.com) to access the source packages.
 
@@ -220,8 +219,6 @@ make OPENOLTDEVICE=asfvolt16 clean-all
 
 ## FAQ
 
-The information here may be specific to specific OLT and ONU hardware such as Edgecore ASFVOLT16 OLT and Broadcom based ONUs.
-
 ### How to change speed of ASFVOLT16 NNI interface?
 
 Auto-negotiation on the NNI (uplink) interfaces is not tested. By default, the OpenOLT agent sets the speed of the NNI interfaces to 100G. To downgrade the network interface speed to 40G, add the following lines at the end of the qax.soc (/broadcom/qax.soc) configuration file. A restart of the dev_mgmt_daemon and openolt executables is required after the change.
@@ -230,13 +227,32 @@ Auto-negotiation on the NNI (uplink) interfaces is not tested. By default, the O
 port ce128 sp=40000
 ```
 
-This change can also be made at run-time from the CLI of the bal_core_dist:
+This change can also be made at run-time from the CLI of the dev_mgmt_daemon:
 
 ```shell
 d/s/shell
 port ce128 speed=40000
 ```
 (It is safe to ignore the error msgs.)
+
+### How do I configure rate limiting?
+
+By default, the full 1G xgs-pon bandwidth is available to an ONU when no rate-limiting is applied. There is experimental support available to change the default bandwith and also rate-limit specific ONUs from the voltha CLI.
+
+
+Configure default rate limit (PIR = 5Mbps):
+
+```shell
+(voltha) xpon
+(voltha-xpon )traffic_descriptor_profile create -n "default" -f 1000 -a 1000 -m 5000
+```
+
+
+Configure ONU BRCM12345678 to be rate-limited to 100Mbps:
+```shell
+(voltha) xpon
+(voltha-xpon )traffic_descriptor_profile create -n "default" -f 50000 -a 70000 -m 100000
+```
 
 ### Why does the Broadcom ONU not forward eapol packets?
 
@@ -246,8 +262,6 @@ The firmware on the ONU is likely not setup to forward 802.1x on the linux bridg
 > sh
 # echo 8 > /sys/class/net/bronu513/bridge/group_fwd_mask
 ```
-
-Version 1.7 of VOLTHA has a known issue where the ONU is only able to pass EAPOL packets from a specific LAN port (e.g. LAN port 1 on ALPHA ONUs)
 
 ### How do I check packet counters on the ONU?
 
